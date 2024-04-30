@@ -1,0 +1,62 @@
+import sqlite3
+import random
+
+def generate_isbn():
+    return ''.join(random.choice('0123456789') for _ in range(10))
+
+try:
+    conn = sqlite3.connect(r'C:\Users\17735\ch17\books.db')
+    cursor = conn.cursor()
+
+    # Task a:
+    cursor.execute("SELECT DISTINCT last FROM authors ORDER BY last DESC")
+    result_a = cursor.fetchall()
+    print("Task a:")
+    print(result_a)
+
+    # Task b: 
+    cursor.execute("SELECT title FROM titles ORDER BY title ASC")
+    result_b = cursor.fetchall()
+    print("\nTask b:")
+    print(result_b)
+
+    # Task c:
+    author_name = input("\nEnter author's last name: ")
+    cursor.execute("""
+        SELECT titles.title, titles.copyright, titles.isbn
+        FROM titles 
+        INNER JOIN author_ISBN ON titles.isbn = author_ISBN.isbn 
+        INNER JOIN authors ON author_ISBN.id = authors.id 
+        WHERE authors.last = ? 
+        ORDER BY titles.title ASC
+    """, (author_name,))
+    result_c = cursor.fetchall()
+    print("\nTask c:")
+    if not result_c:
+        print("No books found for the specified author.")
+    else:
+        for row in result_c:
+            print(row)
+
+    # Task d: 
+    new_author = ('New', 'Author')
+    cursor.execute("INSERT INTO authors (first, last) VALUES (?, ?)", new_author)
+    conn.commit()
+    print("\nTask d: New author inserted.")
+
+    # Task e: 
+    new_title = ('New Book Title', generate_isbn(), 1, '2024')  # Generate a new ISBN
+    cursor.execute("INSERT INTO titles (title, ISBN, edition, copyright) VALUES (?, ?, ?, ?)", new_title)
+    cursor.execute("INSERT INTO author_ISBN (id, isbn) VALUES (?, ?)", (new_author[0], new_title[1]))
+    conn.commit()
+    print("\nTask e: New title inserted for the author.")
+
+except sqlite3.Error as e:
+    print(f"An error occurred: {e}")
+
+finally:
+    # Close the cursor and connection
+    if cursor:
+        cursor.close()
+    if conn:
+        conn.close()
